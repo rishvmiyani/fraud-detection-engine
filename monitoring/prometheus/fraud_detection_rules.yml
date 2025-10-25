@@ -1,0 +1,29 @@
+﻿groups:
+  - name: fraud_detection_alerts
+    rules:
+      - alert: HighFraudRate
+        expr: fraud_detection_fraud_rate > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High fraud rate detected
+          description: "Fraud rate is {{  }}% for the last 5 minutes"
+
+      - alert: APIDown
+        expr: up{job="fraud-detection-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fraud Detection API is down
+          description: "The Fraud Detection API has been down for more than 1 minute"
+
+      - alert: HighResponseTime
+        expr: fraud_detection_response_time_seconds > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: High API response time
+          description: "API response time is {{  }}s"

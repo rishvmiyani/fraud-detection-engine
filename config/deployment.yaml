@@ -1,0 +1,426 @@
+﻿# Deployment configuration for Real-Time Fraud Detection Engine
+# Kubernetes, Docker, CI/CD, and infrastructure settings
+
+# Application deployment settings
+application:
+  name: fraud-detection-engine
+  version: 2.0.0
+  environment: UTF8{ENVIRONMENT:production}
+  namespace: UTF8{K8S_NAMESPACE:fraud-detection}
+  
+  # Resource requirements
+  resources:
+    api:
+      cpu_request: "500m"
+      cpu_limit: "2000m"
+      memory_request: "1Gi"
+      memory_limit: "4Gi"
+      
+    streaming:
+      cpu_request: "1000m"
+      cpu_limit: "4000m"
+      memory_request: "2Gi"
+      memory_limit: "8Gi"
+      
+    model_server:
+      cpu_request: "1000m"
+      cpu_limit: "4000m"
+      memory_request: "4Gi"
+      memory_limit: "16Gi"
+      gpu_request: "1"
+      gpu_limit: "1"
+
+# Docker configuration
+docker:
+  # Registry settings
+  registry:
+    url: UTF8{DOCKER_REGISTRY:docker.io}
+    username: UTF8{DOCKER_USERNAME}
+    password: UTF8{DOCKER_PASSWORD}
+    
+  # Image configuration
+  images:
+    api:
+      name: fraud-detection-api
+      tag: UTF8{APP_VERSION:2.0.0}
+      dockerfile: docker/api.Dockerfile
+      
+    streaming:
+      name: fraud-detection-streaming
+      tag: UTF8{APP_VERSION:2.0.0}
+      dockerfile: docker/streaming.Dockerfile
+      
+    model_server:
+      name: fraud-detection-model-server
+      tag: UTF8{APP_VERSION:2.0.0}
+      dockerfile: docker/model-server.Dockerfile
+      
+    frontend:
+      name: fraud-detection-frontend
+      tag: UTF8{APP_VERSION:2.0.0}
+      dockerfile: docker/frontend.Dockerfile
+      
+  # Build configuration
+  build:
+    platform: linux/amd64
+    build_args:
+      PYTHON_VERSION: 3.9
+      NODE_VERSION: 18
+      
+    # Multi-stage build options
+    cache_from:
+      - python:3.9-slim
+      - node:18-alpine
+
+# Kubernetes configuration
+kubernetes:
+  # Cluster settings
+  cluster:
+    name: UTF8{K8S_CLUSTER_NAME:fraud-detection-cluster}
+    region: UTF8{K8S_REGION:us-west-2}
+    
+  # API deployment
+  api_deployment:
+    replicas: UTF8{API_REPLICAS:3}
+    strategy:
+      type: RollingUpdate
+      rolling_update:
+        max_surge: 1
+        max_unavailable: 0
+        
+    # Pod configuration
+    pod_template:
+      labels:
+        app: fraud-detection-api
+        version: v2
+        tier: api
+        
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/api/v2/monitoring/metrics"
+        
+    # Health checks
+    liveness_probe:
+      http_get:
+        path: /health
+        port: 8000
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
+      
+    readiness_probe:
+      http_get:
+        path: /health/ready
+        port: 8000
+      initial_delay_seconds: 5
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 3
+      
+  # Service configuration
+  services:
+    api_service:
+      type: LoadBalancer
+      ports:
+        - port: 80
+          target_port: 8000
+          protocol: TCP
+          name: http
+          
+    # Headless service for internal communication
+    api_headless:
+      type: ClusterIP
+      cluster_ip: None
+      ports:
+        - port: 8000
+          target_port: 8000
+          
+  # Ingress configuration
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+      
+    hosts:
+      - host: UTF8{API_DOMAIN:api.frauddetection.com}
+        paths:
+          - path: /
+            path_type: Prefix
+            
+    tls:
+      - secret_name: api-tls-secret
+        hosts:
+          - UTF8{API_DOMAIN:api.frauddetection.com}
+          
+  # Horizontal Pod Autoscaler
+  hpa:
+    enabled: true
+    min_replicas: 3
+    max_replicas: 20
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+    # Custom metrics scaling
+    custom_metrics:
+      - type: Pods
+        pods:
+          metric:
+            name: http_requests_per_second
+          target:
+            type: AverageValue
+            average_value: "100"
+
+# Environment-specific configurations
+environments:
+  development:
+    replicas:
+      api: 1
+      streaming: 1
+      model_server: 1
+      
+    resources:
+      api:
+        cpu_limit: "1000m"
+        memory_limit: "2Gi"
+        
+    debug: true
+    log_level: DEBUG
+    
+  staging:
+    replicas:
+      api: 2
+      streaming: 2
+      model_server: 1
+      
+    resources:
+      api:
+        cpu_limit: "1500m"
+        memory_limit: "3Gi"
+        
+    debug: false
+    log_level: INFO
+    
+  production:
+    replicas:
+      api: 5
+      streaming: 3
+      model_server: 2
+      
+    resources:
+      api:
+        cpu_limit: "2000m"
+        memory_limit: "4Gi"
+        
+    debug: false
+    log_level: WARNING
+    
+    # Production-specific settings
+    security:
+      pod_security_policy: restricted
+      network_policies: true
+      
+    monitoring:
+      metrics_retention_days: 90
+      log_retention_days: 30
+
+# CI/CD configuration
+cicd:
+  # GitHub Actions
+  github_actions:
+    enabled: true
+    workflows:
+      - name: ci
+        file: .github/workflows/ci.yml
+        triggers:
+          - push
+          - pull_request
+          
+      - name: cd
+        file: .github/workflows/cd.yml
+        triggers:
+          - push:
+              branches: [main]
+              
+      - name: model_training
+        file: .github/workflows/model-training.yml
+        triggers:
+          - schedule: "0 2 * * 0"  # Weekly on Sunday
+          
+  # Pipeline stages
+  pipeline:
+    stages:
+      - name: test
+        steps:
+          - unit_tests
+          - integration_tests
+          - security_scan
+          - code_quality_check
+          
+      - name: build
+        steps:
+          - docker_build
+          - vulnerability_scan
+          - push_to_registry
+          
+      - name: deploy
+        steps:
+          - deploy_to_staging
+          - smoke_tests
+          - deploy_to_production
+          - health_check
+          
+  # Deployment strategies
+  deployment_strategies:
+    staging:
+      strategy: recreate
+      
+    production:
+      strategy: blue_green
+      traffic_split:
+        blue: 90
+        green: 10
+      rollback_threshold: 0.05  # 5% error rate
+
+# Security configuration
+security:
+  # Pod security
+  pod_security:
+    run_as_non_root: true
+    run_as_user: 1000
+    fs_group: 2000
+    
+    # Security context
+    security_context:
+      capabilities:
+        drop:
+          - ALL
+      read_only_root_filesystem: true
+      allow_privilege_escalation: false
+      
+  # Network security
+  network_policies:
+    enabled: true
+    policies:
+      - name: api-ingress
+        pod_selector:
+          app: fraud-detection-api
+        ingress:
+          - from:
+            - namespace_selector:
+                name: ingress-nginx
+            ports:
+              - protocol: TCP
+                port: 8000
+                
+      - name: api-egress
+        pod_selector:
+          app: fraud-detection-api
+        egress:
+          - to:
+            - namespace_selector:
+                name: database
+            ports:
+              - protocol: TCP
+                port: 5432
+                
+  # Secrets management
+  secrets:
+    provider: kubernetes  # kubernetes, vault, aws_secrets_manager
+    
+    secrets_list:
+      - name: database-credentials
+        type: Opaque
+        data:
+          username: UTF8{DB_USER}
+          password: UTF8{DB_PASSWORD}
+          
+      - name: api-keys
+        type: Opaque
+        data:
+          jwt_secret: UTF8{JWT_SECRET_KEY}
+          api_key: UTF8{ADMIN_API_KEY}
+          
+      - name: model-artifacts
+        type: Opaque
+        data:
+          s3_access_key: UTF8{S3_ACCESS_KEY}
+          s3_secret_key: UTF8{S3_SECRET_KEY}
+
+# Backup and disaster recovery
+backup:
+  # Database backup
+  database:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention_days: 30
+    storage_location: UTF8{BACKUP_S3_BUCKET}
+    encryption: true
+    
+  # Model artifacts backup
+  models:
+    enabled: true
+    schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
+    retention_weeks: 12
+    storage_location: UTF8{MODEL_BACKUP_S3_BUCKET}
+    
+  # Configuration backup
+  configs:
+    enabled: true
+    schedule: "0 3 * * *"  # Daily at 3 AM
+    retention_days: 90
+    storage_location: UTF8{CONFIG_BACKUP_S3_BUCKET}
+
+# Disaster recovery
+disaster_recovery:
+  # Multi-region deployment
+  multi_region:
+    enabled: false
+    regions:
+      primary: us-west-2
+      secondary: us-east-1
+      
+  # Failover configuration
+  failover:
+    enabled: true
+    detection_threshold_seconds: 300
+    automatic_failover: false
+    manual_approval_required: true
+    
+  # Recovery objectives
+  rto: 4h  # Recovery Time Objective
+  rpo: 1h  # Recovery Point Objective
+
+# Cost optimization
+cost_optimization:
+  # Resource optimization
+  resource_optimization:
+    enabled: true
+    vertical_scaling: true
+    spot_instances: false  # Not recommended for production
+    
+  # Scheduled scaling
+  scheduled_scaling:
+    enabled: true
+    schedules:
+      - name: business_hours
+        schedule: "0 8 * * 1-5"  # 8 AM on weekdays
+        min_replicas: 5
+        max_replicas: 20
+        
+      - name: off_hours
+        schedule: "0 20 * * *"  # 8 PM daily
+        min_replicas: 2
+        max_replicas: 10
+        
+  # Monitoring and alerts
+  cost_alerts:
+    enabled: true
+    budget_threshold: 1000  # USD per month
+    alert_recipients:
+      - devops-team@company.com
+      - finance-team@company.com

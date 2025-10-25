@@ -1,0 +1,20 @@
+{
+  "random_forest": {
+    "roc_auc": 0.7670966445807725,
+    "best_params": {
+      "max_depth": 10,
+      "min_samples_split": 10
+    },
+    "model_path": "models/production/random_forest_model.pkl",
+    "use_scaled": false
+  },
+  "logistic_regression": {
+    "roc_auc": 0.6154051610195861,
+    "best_params": {
+      "C": 1,
+      "penalty": "l2"
+    },
+    "model_path": "models/production/logistic_regression_model.pkl",
+    "use_scaled": true
+  }
+}

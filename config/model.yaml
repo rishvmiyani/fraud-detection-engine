@@ -1,0 +1,351 @@
+﻿# Machine Learning model configurations
+# Comprehensive settings for fraud detection models
+
+# Model registry and versioning
+model_registry:
+  backend: mlflow
+  tracking_uri: UTF8{MLFLOW_TRACKING_URI:http://localhost:5000}
+  experiment_name: fraud-detection-v2
+  model_name: fraud_detector
+  stage: Production
+  
+  # Model storage
+  artifact_store: UTF8{MODEL_ARTIFACT_STORE:s3://fraud-models}
+  model_cache_dir: /tmp/model_cache
+  
+  # Model lifecycle
+  auto_promotion: true
+  champion_challenger_ratio: 0.9
+  model_warming_enabled: true
+
+# Feature engineering configuration
+feature_engineering:
+  # Time-based features
+  time_windows_hours: [1, 6, 24, 168]  # 1h, 6h, 1d, 1w
+  time_features:
+    - hour_of_day
+    - day_of_week
+    - is_weekend
+    - is_business_hours
+    - time_since_last_transaction
+    
+  # Velocity features
+  velocity_features:
+    enabled: true
+    aggregation_windows: [300, 3600, 86400]  # 5min, 1h, 1day
+    metrics:
+      - transaction_count
+      - total_amount
+      - unique_merchants
+      - unique_countries
+      - avg_amount
+      - std_amount
+      
+  # Behavioral features
+  behavioral_features:
+    enabled: true
+    lookback_days: 30
+    features:
+      - spending_deviation
+      - merchant_familiarity
+      - location_familiarity
+      - payment_method_consistency
+      - transaction_timing_pattern
+      
+  # Network features
+  network_features:
+    enabled: true
+    graph_algorithms:
+      - pagerank
+      - community_detection
+      - centrality_measures
+    features:
+      - account_connections
+      - shared_devices
+      - shared_addresses
+      - transaction_networks
+      
+  # External data features
+  external_features:
+    ip_geolocation: true
+    device_fingerprinting: true
+    email_reputation: true
+    phone_reputation: true
+    merchant_category_risk: true
+
+# Model algorithms and hyperparameters
+algorithms:
+  # Ensemble configuration
+  ensemble:
+    enabled: true
+    strategy: voting  # voting, stacking, blending
+    voting_type: soft
+    weights: auto
+    
+  # Logistic Regression
+  logistic_regression:
+    enabled: true
+    weight: 0.2
+    hyperparameters:
+      C: 1.0
+      solver: liblinear
+      max_iter: 1000
+      random_state: 42
+      class_weight: balanced
+      
+  # Random Forest
+  random_forest:
+    enabled: true
+    weight: 0.25
+    hyperparameters:
+      n_estimators: 200
+      max_depth: 15
+      min_samples_split: 10
+      min_samples_leaf: 5
+      max_features: sqrt
+      random_state: 42
+      class_weight: balanced_subsample
+      n_jobs: -1
+      
+  # XGBoost
+  xgboost:
+    enabled: true
+    weight: 0.3
+    hyperparameters:
+      n_estimators: 300
+      learning_rate: 0.1
+      max_depth: 8
+      subsample: 0.8
+      colsample_bytree: 0.8
+      gamma: 0
+      min_child_weight: 5
+      random_state: 42
+      scale_pos_weight: 10
+      n_jobs: -1
+      
+  # LightGBM
+  lightgbm:
+    enabled: true
+    weight: 0.25
+    hyperparameters:
+      n_estimators: 250
+      learning_rate: 0.1
+      max_depth: 10
+      num_leaves: 100
+      subsample: 0.8
+      colsample_bytree: 0.8
+      min_child_samples: 20
+      random_state: 42
+      is_unbalance: true
+      n_jobs: -1
+
+# Deep learning models
+deep_learning:
+  # Neural Network
+  neural_network:
+    enabled: true
+    architecture:
+      input_dim: auto
+      hidden_layers: [256, 128, 64, 32]
+      dropout_rates: [0.3, 0.3, 0.2, 0.2]
+      activation: relu
+      output_activation: sigmoid
+      
+    training:
+      optimizer: adam
+      learning_rate: 0.001
+      batch_size: 1024
+      epochs: 100
+      early_stopping_patience: 10
+      reduce_lr_patience: 5
+      validation_split: 0.2
+      
+  # Autoencoder for anomaly detection
+  autoencoder:
+    enabled: true
+    architecture:
+      encoder_layers: [128, 64, 32]
+      decoder_layers: [32, 64, 128]
+      latent_dim: 16
+      activation: relu
+      
+    training:
+      optimizer: adam
+      learning_rate: 0.001
+      batch_size: 512
+      epochs: 50
+      reconstruction_threshold: 0.95
+
+# Unsupervised learning
+unsupervised:
+  # Isolation Forest
+  isolation_forest:
+    enabled: true
+    hyperparameters:
+      n_estimators: 200
+      max_samples: 0.8
+      contamination: 0.1
+      max_features: 1.0
+      random_state: 42
+      n_jobs: -1
+      
+  # One-Class SVM
+  one_class_svm:
+    enabled: false
+    hyperparameters:
+      kernel: rbf
+      gamma: scale
+      nu: 0.1
+      
+  # DBSCAN clustering
+  dbscan:
+    enabled: true
+    hyperparameters:
+      eps: 0.5
+      min_samples: 5
+      metric: euclidean
+      n_jobs: -1
+
+# Model training configuration
+training:
+  # Data splitting
+  train_size: 0.7
+  validation_size: 0.15
+  test_size: 0.15
+  stratify: true
+  random_state: 42
+  
+  # Cross validation
+  cv_folds: 5
+  cv_scoring: roc_auc
+  cv_shuffle: true
+  
+  # Class imbalance handling
+  sampling_strategy: auto
+  sampling_methods:
+    - SMOTE
+    - BorderlineSMOTE
+    - ADASYN
+    
+  # Feature selection
+  feature_selection:
+    enabled: true
+    method: mutual_info
+    k_best: 50
+    remove_correlated: true
+    correlation_threshold: 0.95
+
+# Model evaluation
+evaluation:
+  # Metrics
+  primary_metric: roc_auc
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - roc_auc
+    - pr_auc
+    - log_loss
+    - matthews_corrcoef
+    
+  # Thresholds
+  decision_thresholds:
+    - 0.1   # Low risk
+    - 0.5   # Medium risk  
+    - 0.8   # High risk
+    - 0.95  # Very high risk
+    
+  # Business metrics
+  business_metrics:
+    cost_false_positive: 10    # Cost of blocking legitimate transaction
+    cost_false_negative: 100   # Cost of missing fraud
+    avg_transaction_value: 85
+    
+  # Model interpretability
+  explainability:
+    enabled: true
+    methods:
+      - shap
+      - lime
+      - permutation_importance
+    global_explanations: true
+    local_explanations: true
+
+# Real-time inference
+inference:
+  # Serving configuration
+  batch_size: 1000
+  max_latency_ms: 50
+  timeout_ms: 5000
+  
+  # Model caching
+  cache_predictions: true
+  cache_ttl_seconds: 300
+  
+  # A/B testing
+  ab_testing:
+    enabled: true
+    traffic_split: 0.1
+    champion_model: fraud_detector_v1
+    challenger_model: fraud_detector_v2
+    
+  # Fallback strategy
+  fallback:
+    enabled: true
+    fallback_model: rule_based_v1
+    fallback_threshold_ms: 100
+
+# Model monitoring
+monitoring:
+  # Data drift detection
+  data_drift:
+    enabled: true
+    detection_method: ks_test
+    threshold: 0.05
+    reference_window_days: 30
+    
+  # Concept drift detection  
+  concept_drift:
+    enabled: true
+    detection_method: page_hinkley
+    threshold: 0.05
+    min_instances: 1000
+    
+  # Performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics_window_hours: 24
+    alert_thresholds:
+      accuracy_drop: 0.05
+      precision_drop: 0.1
+      recall_drop: 0.1
+      
+  # Prediction quality
+  prediction_quality:
+    enabled: true
+    sample_rate: 0.1
+    quality_metrics:
+      - prediction_consistency
+      - confidence_calibration
+      - feature_importance_stability
+
+# Automated retraining
+retraining:
+  enabled: true
+  trigger_conditions:
+    - data_drift_detected
+    - concept_drift_detected
+    - performance_degradation
+    - scheduled_weekly
+    
+  retraining_schedule:
+    frequency: weekly
+    day_of_week: sunday
+    hour: 2
+    
+  auto_deployment:
+    enabled: false
+    validation_required: true
+    approval_required: true
+    rollback_enabled: true

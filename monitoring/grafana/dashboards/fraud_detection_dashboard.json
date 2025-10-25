@@ -1,0 +1,82 @@
+﻿{
+  "dashboard": {
+    "id": null,
+    "title": "Fraud Detection Engine Dashboard",
+    "tags": ["fraud-detection"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Predictions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "fraud_detection_predictions_total",
+            "legendFormat": "Predictions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Fraud Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "fraud_detection_fraud_total / fraud_detection_predictions_total * 100",
+            "legendFormat": "Fraud Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Predictions Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(fraud_detection_predictions_total[5m]) * 60",
+            "legendFormat": "Predictions per minute"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

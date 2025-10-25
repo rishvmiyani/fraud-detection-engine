@@ -1,0 +1,104 @@
+﻿{
+  "schema": "user",
+  "version": "1.0",
+  "description": "Schema for user profile data",
+  "fields": [
+    {
+      "name": "user_id",
+      "type": "string",
+      "required": true,
+      "description": "Unique user identifier",
+      "pattern": "^USR[0-9]+$",
+      "max_length": 15
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": true,
+      "description": "User email address",
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+      "max_length": 255
+    },
+    {
+      "name": "phone",
+      "type": "string",
+      "required": false,
+      "description": "Phone number with country code",
+      "pattern": "^\\+[1-9]\\d{1,14}$",
+      "max_length": 20
+    },
+    {
+      "name": "registration_date",
+      "type": "date",
+      "required": true,
+      "description": "User registration date",
+      "format": "YYYY-MM-DD"
+    },
+    {
+      "name": "country",
+      "type": "string",
+      "required": true,
+      "description": "User country code",
+      "pattern": "^[A-Z]{2}$",
+      "max_length": 2
+    },
+    {
+      "name": "age",
+      "type": "integer",
+      "required": false,
+      "description": "User age",
+      "min_value": 18,
+      "max_value": 120
+    },
+    {
+      "name": "account_status",
+      "type": "string",
+      "required": true,
+      "description": "Current account status",
+      "allowed_values": ["active", "suspended", "flagged", "closed"],
+      "max_length": 20
+    },
+    {
+      "name": "risk_score",
+      "type": "float",
+      "required": true,
+      "description": "User risk score (0-1)",
+      "min_value": 0.0,
+      "max_value": 1.0
+    }
+  ],
+  "constraints": [
+    {
+      "type": "unique",
+      "fields": ["user_id"],
+      "description": "User ID must be unique"
+    },
+    {
+      "type": "unique",
+      "fields": ["email"],
+      "description": "Email must be unique"
+    },
+    {
+      "type": "business_rule",
+      "rule": "risk_score >= 0 AND risk_score <= 1",
+      "description": "Risk score must be between 0 and 1"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "idx_user_id",
+      "fields": ["user_id"],
+      "type": "primary"
+    },
+    {
+      "name": "idx_email",
+      "fields": ["email"],
+      "type": "unique"
+    },
+    {
+      "name": "idx_risk_score",
+      "fields": ["risk_score"],
+      "type": "index"
+    }
+  ]
+}

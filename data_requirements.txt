@@ -1,0 +1,9 @@
+﻿# Data processing requirements
+pandas>=1.5.0
+numpy>=1.21.0
+scikit-learn>=1.1.0
+faker>=15.0.0
+pyarrow>=10.0.0
+fastparquet>=0.8.0
+pydantic>=1.10.0
+jsonschema>=4.0.0

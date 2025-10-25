@@ -1,0 +1,133 @@
+﻿# Database configurations for Real-Time Fraud Detection Engine
+# Supports PostgreSQL, Redis, MongoDB, ClickHouse for different use cases
+
+postgresql:
+  # Main transactional database
+  host: UTF8{DB_HOST:localhost}
+  port: UTF8{DB_PORT:5432}
+  database: UTF8{DB_NAME:fraud_detection}
+  username: UTF8{DB_USER:fraud_user}
+  password: UTF8{DB_PASSWORD:fraud_password}
+  
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+  
+  # Advanced settings
+  echo: false
+  echo_pool: false
+  pool_pre_ping: true
+  
+  # SSL configuration
+  ssl_mode: UTF8{DB_SSL_MODE:prefer}
+  ssl_cert: UTF8{DB_SSL_CERT:}
+  ssl_key: UTF8{DB_SSL_KEY:}
+  ssl_ca: UTF8{DB_SSL_CA:}
+
+redis:
+  # Caching and session storage
+  host: UTF8{REDIS_HOST:localhost}
+  port: UTF8{REDIS_PORT:6379}
+  db: UTF8{REDIS_DB:0}
+  password: UTF8{REDIS_PASSWORD:}
+  
+  # Connection settings
+  max_connections: 100
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  socket_keepalive: true
+  socket_keepalive_options: {}
+  
+  # Clustering (if using Redis Cluster)
+  cluster_enabled: false
+  cluster_nodes:
+    - host: UTF8{REDIS_NODE1_HOST:localhost}
+      port: UTF8{REDIS_NODE1_PORT:7000}
+    - host: UTF8{REDIS_NODE2_HOST:localhost}
+      port: UTF8{REDIS_NODE2_PORT:7001}
+  
+  # Cache settings
+  default_ttl: 3600  # 1 hour
+  fraud_score_ttl: 300  # 5 minutes
+  feature_cache_ttl: 1800  # 30 minutes
+
+mongodb:
+  # Document storage for logs and complex data
+  connection_string: UTF8{MONGO_URI:mongodb://localhost:27017}
+  database: UTF8{MONGO_DB:fraud_logs}
+  
+  # Connection options
+  max_pool_size: 100
+  min_pool_size: 10
+  max_idle_time_ms: 30000
+  server_selection_timeout_ms: 5000
+  socket_timeout_ms: 20000
+  connect_timeout_ms: 10000
+  
+  # Collections
+  collections:
+    transactions: fraud_transactions
+    alerts: fraud_alerts
+    user_behavior: user_behavior_logs
+    model_predictions: model_predictions
+    audit_logs: audit_logs
+
+clickhouse:
+  # Time-series analytics database
+  host: UTF8{CLICKHOUSE_HOST:localhost}
+  port: UTF8{CLICKHOUSE_PORT:9000}
+  database: UTF8{CLICKHOUSE_DB:fraud_analytics}
+  username: UTF8{CLICKHOUSE_USER:default}
+  password: UTF8{CLICKHOUSE_PASSWORD:}
+  
+  # Connection settings
+  send_receive_timeout: 300
+  sync_request_timeout: 5
+  compress_block_size: 1048576
+  
+  # Tables for analytics
+  tables:
+    transaction_features: transaction_features_mv
+    fraud_metrics: fraud_detection_metrics
+    model_performance: model_performance_stats
+    real_time_aggregates: rt_transaction_aggregates
+
+# Database routing configuration
+routing:
+  # Read/Write splitting
+  write_db: postgresql
+  read_db: postgresql
+  
+  # Data type routing
+  transactional_data: postgresql
+  cache_data: redis
+  log_data: mongodb
+  analytics_data: clickhouse
+  
+  # Failover configuration
+  failover_enabled: true
+  health_check_interval: 30
+  max_retries: 3
+  retry_delay: 5
+
+# Migration settings
+migrations:
+  auto_upgrade: false
+  backup_before_migration: true
+  migration_timeout: 300
+  
+# Monitoring
+monitoring:
+  log_slow_queries: true
+  slow_query_threshold: 1.0  # seconds
+  log_db_connections: true
+  metrics_collection: true
+  
+# Security
+security:
+  encrypt_sensitive_data: true
+  encryption_key: UTF8{DB_ENCRYPTION_KEY:}
+  mask_pii_in_logs: true
+  audit_all_queries: false

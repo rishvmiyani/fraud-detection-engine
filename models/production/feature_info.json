@@ -1,0 +1,28 @@
+{
+  "feature_columns": [
+    "amount",
+    "amount_log",
+    "amount_vs_user_avg",
+    "hour",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "is_night",
+    "is_business_hours",
+    "is_round_amount",
+    "payment_method_encoded",
+    "merchant_category_encoded",
+    "country_encoded",
+    "device_type_encoded"
+  ],
+  "categorical_columns": [
+    "payment_method",
+    "merchant_category",
+    "country",
+    "device_type"
+  ],
+  "training_date": "2025-10-18T22:57:18.038757",
+  "training_samples": 40000,
+  "test_samples": 10000,
+  "fraud_rate": 0.0565
+}

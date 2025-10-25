@@ -1,0 +1,3 @@
+﻿transaction_id,user_id,merchant_id,amount_clean,currency,timestamp_clean,payment_method_clean,country_clean,ip_address,device_id,is_fraud
+TXN001,USR12345,MRC78901,150.50,USD,2025-10-17 09:00:00,credit_card,US,192.168.1.100,DEV001,0
+TXN002,USR23456,MRC78902,2500.00,USD,2025-10-17 09:01:30,debit_card,US,192.168.1.101,DEV002,1

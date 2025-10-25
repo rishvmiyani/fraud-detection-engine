@@ -1,0 +1,6 @@
+﻿ip_address,reason,date_added,severity
+10.0.0.1,known_fraud,2025-01-15,high
+192.168.100.50,bot_activity,2025-02-20,medium
+203.0.113.1,suspicious_location,2025-03-10,high
+198.51.100.1,multiple_accounts,2025-04-05,medium
+172.16.0.1,velocity_abuse,2025-05-12,high

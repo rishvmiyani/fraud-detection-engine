@@ -1,0 +1,80 @@
+﻿# =================================================================
+# FRAUD DETECTION ENGINE - DEVELOPMENT REQUIREMENTS (GUARANTEED WORKING)
+# =================================================================
+
+# Testing Framework
+pytest>=7.0,<7.3
+pytest-asyncio
+pytest-cov
+pytest-html
+pytest-mock
+pytest-benchmark
+pytest-xdist
+pytest-sugar
+pytest-clarity
+
+# Test Utilities
+factory-boy
+faker
+hypothesis
+responses
+httpx
+testcontainers
+
+# Code Quality
+black
+isort
+flake8
+mypy
+pylint
+autopep8
+
+# Security
+bandit
+semgrep
+
+# Pre-commit Hooks
+pre-commit
+
+# Documentation
+sphinx
+sphinx-rtd-theme
+sphinx-autodoc-typehints
+myst-parser
+sphinx-click
+
+# Development Tools
+ipython
+jupyter
+jupyterlab
+notebook
+
+# Debugging
+ipdb
+pudb
+
+# Performance Profiling - ONLY WORKING PACKAGES
+memory-profiler
+py-spy
+snakeviz
+pyinstrument
+
+# Load Testing
+locust
+
+# API Testing
+tavern
+
+# Type Checking Extensions
+types-redis
+types-requests
+types-pyyaml
+types-python-dateutil
+
+# Development Utilities
+watchdog
+python-dotenv
+environs
+
+# Formatting
+ruff

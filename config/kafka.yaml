@@ -1,0 +1,201 @@
+﻿# Apache Kafka configuration for real-time streaming
+# Handles high-throughput transaction processing
+
+kafka:
+  # Broker configuration
+  bootstrap_servers: 
+    - UTF8{KAFKA_BROKER1:localhost:9092}
+    - UTF8{KAFKA_BROKER2:localhost:9093}
+    - UTF8{KAFKA_BROKER3:localhost:9094}
+  
+  # Security settings
+  security_protocol: UTF8{KAFKA_SECURITY_PROTOCOL:SASL_SSL}
+  sasl_mechanism: UTF8{KAFKA_SASL_MECHANISM:PLAIN}
+  sasl_username: UTF8{KAFKA_USERNAME:fraud_detector}
+  sasl_password: UTF8{KAFKA_PASSWORD:secure_password}
+  ssl_cafile: UTF8{KAFKA_SSL_CA:}
+  ssl_certfile: UTF8{KAFKA_SSL_CERT:}
+  ssl_keyfile: UTF8{KAFKA_SSL_KEY:}
+  
+  # Client configuration
+  client_id: fraud-detection-engine-v2
+  api_version_auto_timeout_ms: 20000
+  request_timeout_ms: 30000
+  retry_backoff_ms: 100
+  max_in_flight_requests_per_connection: 5
+
+# Producer configuration for sending processed data
+producer:
+  # Performance settings
+  batch_size: 16384
+  linger_ms: 10
+  compression_type: lz4
+  buffer_memory: 33554432
+  max_request_size: 1048576
+  
+  # Reliability settings
+  acks: all
+  retries: 2147483647
+  max_in_flight_requests_per_connection: 5
+  enable_idempotence: true
+  delivery_timeout_ms: 120000
+  request_timeout_ms: 30000
+  
+  # Serialization
+  key_serializer: org.apache.kafka.common.serialization.StringSerializer
+  value_serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+
+# Consumer configuration for processing transactions
+consumer:
+  # Consumer group settings
+  group_id: fraud-detection-consumer-group
+  auto_offset_reset: latest
+  enable_auto_commit: false
+  max_poll_records: 1000
+  max_poll_interval_ms: 300000
+  session_timeout_ms: 30000
+  heartbeat_interval_ms: 10000
+  
+  # Performance settings
+  fetch_min_bytes: 1024
+  fetch_max_wait_ms: 500
+  max_partition_fetch_bytes: 1048576
+  
+  # Deserialization
+  key_deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  value_deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+
+# Topic configuration
+topics:
+  # Input topics
+  raw_transactions:
+    name: raw-transactions
+    partitions: 12
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 604800000  # 7 days
+    segment_ms: 86400000     # 1 day
+    
+  user_events:
+    name: user-events
+    partitions: 6
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 259200000  # 3 days
+    
+  # Processing topics
+  enriched_transactions:
+    name: enriched-transactions
+    partitions: 12
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 604800000  # 7 days
+    
+  fraud_features:
+    name: fraud-features
+    partitions: 12
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 604800000  # 7 days
+    
+  # Output topics
+  fraud_scores:
+    name: fraud-scores
+    partitions: 12
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 2592000000  # 30 days
+    
+  fraud_alerts:
+    name: fraud-alerts
+    partitions: 6
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 7776000000  # 90 days
+    
+  # Dead letter queues
+  dlq_processing_errors:
+    name: dlq-processing-errors
+    partitions: 3
+    replication_factor: 3
+    cleanup_policy: delete
+    retention_ms: 7776000000  # 90 days
+
+# Stream processing configuration
+stream_processing:
+  # Apache Flink settings
+  flink:
+    parallelism: 12
+    checkpoint_interval: 10000  # 10 seconds
+    checkpoint_timeout: 60000   # 1 minute
+    min_pause_between_checkpoints: 5000
+    max_concurrent_checkpoints: 1
+    restart_strategy: fixed-delay
+    restart_attempts: 3
+    restart_delay: 30000  # 30 seconds
+    
+  # Processing windows
+  windows:
+    fraud_velocity_window: 3600000    # 1 hour
+    behavior_analysis_window: 86400000 # 24 hours
+    pattern_detection_window: 604800000 # 7 days
+    
+  # Real-time aggregations
+  aggregations:
+    - name: transaction_velocity
+      window_size: 3600000  # 1 hour
+      slide_size: 60000     # 1 minute
+      
+    - name: spending_patterns  
+      window_size: 86400000 # 24 hours
+      slide_size: 3600000   # 1 hour
+      
+    - name: merchant_risk_score
+      window_size: 604800000 # 7 days
+      slide_size: 86400000   # 1 day
+
+# Monitoring and observability
+monitoring:
+  # JMX metrics
+  jmx_enabled: true
+  jmx_port: 9999
+  
+  # Prometheus metrics
+  prometheus_enabled: true
+  prometheus_port: 8080
+  prometheus_path: /metrics
+  
+  # Consumer lag monitoring
+  lag_threshold_warning: 1000
+  lag_threshold_critical: 5000
+  
+  # Producer metrics
+  track_producer_metrics: true
+  track_consumer_metrics: true
+
+# Error handling
+error_handling:
+  # Retry configuration
+  max_retries: 3
+  retry_backoff_ms: 1000
+  exponential_backoff: true
+  max_retry_delay_ms: 30000
+  
+  # Dead letter queue
+  enable_dlq: true
+  dlq_topic: dlq-processing-errors
+  
+  # Circuit breaker
+  circuit_breaker_enabled: true
+  failure_threshold: 10
+  recovery_timeout: 60000
+  
+# Schema registry (if using Confluent)
+schema_registry:
+  url: UTF8{SCHEMA_REGISTRY_URL:http://localhost:8081}
+  basic_auth_username: UTF8{SCHEMA_REGISTRY_USER:}
+  basic_auth_password: UTF8{SCHEMA_REGISTRY_PASSWORD:}
+  
+  # Schema evolution
+  auto_register_schemas: false
+  compatibility_level: BACKWARD

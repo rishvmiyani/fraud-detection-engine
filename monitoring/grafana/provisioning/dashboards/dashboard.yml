@@ -1,0 +1,36 @@
+﻿# Grafana Dashboard Provisioning Configuration
+apiVersion: 1
+
+providers:
+  - name: 'Fraud Detection Dashboards'
+    orgId: 1
+    folder: 'Fraud Detection'
+    folderUid: fraud_detection_uid
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      
+  - name: 'Infrastructure Dashboards'
+    orgId: 1
+    folder: 'Infrastructure'
+    folderUid: infrastructure_uid
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/infrastructure
+      
+  - name: 'Business Metrics Dashboards'
+    orgId: 1
+    folder: 'Business'
+    folderUid: business_uid
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/business

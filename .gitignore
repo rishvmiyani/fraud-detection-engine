@@ -1,0 +1,49 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Models (too large for git)
+models/*.pkl
+models/*.joblib
+
+# Data
+data/raw/*
+data/processed/*
+!data/.gitkeep
+
+# Node modules
+node_modules/
+
+# Vercel
+.vercel

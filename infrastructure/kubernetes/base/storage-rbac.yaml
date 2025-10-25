@@ -1,0 +1,61 @@
+﻿apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fraud-detection-models-pvc
+  labels:
+    app: fraud-detection
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: efs-sc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fraud-detection-logs-pvc
+  labels:
+    app: fraud-detection
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: efs-sc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fraud-detection-sa
+  labels:
+    app: fraud-detection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fraud-detection-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fraud-detection-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: fraud-detection-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: fraud-detection-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,364 @@
+﻿# API configuration for Real-Time Fraud Detection Engine
+# FastAPI settings, middleware, security, and endpoint configurations
+
+# Application settings
+application:
+  name: Fraud Detection API
+  version: 2.0.0
+  description: Enterprise Real-Time Fraud Detection Engine
+  environment: UTF8{ENVIRONMENT:development}
+  debug: UTF8{DEBUG:true}
+  
+  # Server settings
+  host: UTF8{API_HOST:0.0.0.0}
+  port: UTF8{API_PORT:8000}
+  workers: UTF8{API_WORKERS:4}
+  reload: UTF8{API_RELOAD:true}
+  
+  # API configuration
+  api_prefix: /api/v2
+  docs_url: /docs
+  redoc_url: /redoc
+  openapi_url: /openapi.json
+  
+  # CORS settings
+  cors:
+    allow_origins:
+      - http://localhost:3000
+      - http://localhost:8080
+      - UTF8{FRONTEND_URL:http://localhost:3000}
+    allow_credentials: true
+    allow_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allow_headers:
+      - "*"
+    expose_headers:
+      - X-Request-ID
+      - X-Response-Time
+
+# Security configuration
+security:
+  # Authentication
+  authentication:
+    jwt_secret_key: UTF8{JWT_SECRET_KEY:your-super-secret-jwt-key-change-in-production}
+    jwt_algorithm: HS256
+    jwt_expiration_minutes: 60
+    jwt_refresh_expiration_days: 7
+    
+  # API Keys
+  api_keys:
+    enabled: true
+    header_name: X-API-Key
+    admin_key: UTF8{ADMIN_API_KEY:admin-super-secret-key}
+    service_keys:
+      - name: payment_processor
+        key: UTF8{PAYMENT_PROCESSOR_KEY:payment-service-key}
+        permissions:
+          - fraud_detection
+          - transaction_submission
+      - name: risk_engine
+        key: UTF8{RISK_ENGINE_KEY:risk-engine-key}
+        permissions:
+          - fraud_detection
+          - model_monitoring
+          
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    default_rate: "1000/minute"
+    burst_rate: "100/second"
+    
+    # Endpoint-specific limits
+    endpoint_limits:
+      "/api/v2/fraud/detect": "500/minute"
+      "/api/v2/fraud/batch": "50/minute"
+      "/api/v2/admin/*": "100/minute"
+      
+    # Rate limit storage
+    storage_backend: redis
+    storage_uri: UTF8{REDIS_URL:redis://localhost:6379}
+    
+  # Request validation
+  validation:
+    max_request_size: 10485760  # 10MB
+    max_file_size: 5242880      # 5MB
+    allowed_content_types:
+      - application/json
+      - application/x-www-form-urlencoded
+      - multipart/form-data
+
+# Middleware configuration
+middleware:
+  # Request ID middleware
+  request_id:
+    enabled: true
+    header_name: X-Request-ID
+    generate_if_missing: true
+    
+  # Logging middleware
+  logging:
+    enabled: true
+    log_requests: true
+    log_responses: false  # Don't log response body for security
+    log_request_body: true
+    sensitive_headers:
+      - authorization
+      - x-api-key
+      - cookie
+      
+  # Timing middleware
+  timing:
+    enabled: true
+    header_name: X-Response-Time
+    
+  # Security headers
+  security_headers:
+    enabled: true
+    headers:
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: DENY
+      X-XSS-Protection: "1; mode=block"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      Referrer-Policy: strict-origin-when-cross-origin
+      
+  # Compression
+  compression:
+    enabled: true
+    minimum_size: 1000
+    compression_level: 6
+
+# Endpoint configurations
+endpoints:
+  # Fraud detection endpoints
+  fraud_detection:
+    base_path: /fraud
+    timeout_seconds: 5
+    max_concurrent_requests: 1000
+    
+    routes:
+      detect:
+        path: /detect
+        method: POST
+        rate_limit: "500/minute"
+        timeout_seconds: 2
+        cache_ttl_seconds: 60
+        
+      batch_detect:
+        path: /batch
+        method: POST
+        rate_limit: "50/minute"
+        timeout_seconds: 30
+        max_batch_size: 1000
+        
+      risk_score:
+        path: /risk-score
+        method: POST
+        rate_limit: "200/minute"
+        timeout_seconds: 1
+        
+  # Monitoring endpoints
+  monitoring:
+    base_path: /monitoring
+    
+    routes:
+      health:
+        path: /health
+        method: GET
+        rate_limit: "1000/minute"
+        
+      metrics:
+        path: /metrics
+        method: GET
+        rate_limit: "100/minute"
+        auth_required: true
+        
+      model_status:
+        path: /model-status
+        method: GET
+        rate_limit: "50/minute"
+        auth_required: true
+        
+  # Admin endpoints
+  admin:
+    base_path: /admin
+    auth_required: true
+    admin_only: true
+    
+    routes:
+      model_management:
+        path: /models
+        methods: [GET, POST, PUT, DELETE]
+        rate_limit: "100/minute"
+        
+      user_management:
+        path: /users
+        methods: [GET, POST, PUT, DELETE]
+        rate_limit: "50/minute"
+        
+      system_config:
+        path: /config
+        methods: [GET, PUT]
+        rate_limit: "20/minute"
+
+# Response configuration
+responses:
+  # Standard response format
+  standard_format:
+    success_format:
+      status: success
+      data: {}
+      metadata:
+        request_id: ""
+        timestamp: ""
+        processing_time_ms: 0
+        
+    error_format:
+      status: error
+      error:
+        code: ""
+        message: ""
+        details: {}
+      metadata:
+        request_id: ""
+        timestamp: ""
+        
+  # Fraud detection response
+  fraud_response:
+    include_explanation: true
+    include_confidence: true
+    include_risk_factors: true
+    max_explanation_features: 10
+    
+  # Error handling
+  error_handling:
+    include_stack_trace: UTF8{DEBUG:false}
+    log_errors: true
+    return_internal_errors: false
+    
+    # Custom error messages
+    error_messages:
+      validation_error: "Invalid request data"
+      authentication_error: "Authentication required"
+      authorization_error: "Insufficient permissions"
+      rate_limit_error: "Rate limit exceeded"
+      internal_error: "Internal server error"
+
+# Caching configuration
+caching:
+  # Response caching
+  response_cache:
+    enabled: true
+    backend: redis
+    default_ttl_seconds: 300
+    
+    # Cacheable endpoints
+    cacheable_endpoints:
+      - path: "/api/v2/fraud/detect"
+        ttl_seconds: 60
+        cache_key_fields:
+          - transaction_id
+          - user_id
+          - amount
+          
+  # Model caching
+  model_cache:
+    enabled: true
+    cache_predictions: true
+    prediction_cache_ttl: 300
+
+# Documentation configuration
+documentation:
+  # OpenAPI settings
+  openapi:
+    title: "Fraud Detection API"
+    version: "2.0.0"
+    description: "Enterprise Real-Time Fraud Detection Engine API"
+    terms_of_service: "https://example.com/terms"
+    contact:
+      name: "Fraud Detection Team"
+      email: "fraud-team@company.com"
+    license:
+      name: "Proprietary"
+      
+  # API documentation
+  tags:
+    - name: "Fraud Detection"
+      description: "Real-time fraud detection operations"
+    - name: "Monitoring"
+      description: "System health and monitoring"
+    - name: "Admin"
+      description: "Administrative operations"
+      
+  # Example responses
+  include_examples: true
+  include_schemas: true
+
+# Logging configuration
+logging:
+  level: UTF8{LOG_LEVEL:INFO}
+  format: json
+  
+  # Log destinations
+  handlers:
+    console:
+      enabled: true
+      level: INFO
+      
+    file:
+      enabled: true
+      level: INFO
+      filename: /logs/api.log
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      
+    elk:
+      enabled: false
+      elasticsearch_url: UTF8{ELASTICSEARCH_URL:http://localhost:9200}
+      index_name: fraud-api-logs
+      
+  # Structured logging
+  include_fields:
+    - timestamp
+    - level
+    - request_id
+    - user_id
+    - endpoint
+    - method
+    - status_code
+    - processing_time
+    - error_message
+
+# Health check configuration
+health_checks:
+  # Dependencies
+  dependencies:
+    database:
+      enabled: true
+      timeout_seconds: 5
+      
+    redis:
+      enabled: true
+      timeout_seconds: 2
+      
+    kafka:
+      enabled: true
+      timeout_seconds: 3
+      
+    model_service:
+      enabled: true
+      timeout_seconds: 5
+      
+  # Health check endpoint
+  endpoint: /health
+  detailed_endpoint: /health/detailed
+  
+  # Response format
+  response_format:
+    status: "healthy"  # healthy, degraded, unhealthy
+    checks: {}
+    timestamp: ""
+    uptime_seconds: 0

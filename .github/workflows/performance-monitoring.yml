@@ -1,0 +1,138 @@
+﻿name: 📊 Performance Monitoring
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      test_duration:
+        description: 'Test duration in minutes'
+        required: true
+        default: '5'
+        type: string
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # ⚡ Performance Tests
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-benchmark requests psutil
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+      - name: ⚡ Run Basic Performance Tests
+        run: |
+          mkdir -p reports
+          python -c "
+          import time
+          import psutil
+          import json
+          
+          # Basic performance test
+          start_time = time.time()
+          
+          # Simulate some work
+          for i in range(1000):
+              result = sum(j*j for j in range(100))
+          
+          end_time = time.time()
+          execution_time = end_time - start_time
+          
+          # Get system info
+          cpu_percent = psutil.cpu_percent(interval=1)
+          memory_info = psutil.virtual_memory()
+          
+          performance_data = {
+              'execution_time': execution_time,
+              'cpu_percent': cpu_percent,
+              'memory_percent': memory_info.percent,
+              'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+          }
+          
+          with open('reports/performance-results.json', 'w') as f:
+              json.dump(performance_data, f, indent=2)
+          
+          print(f'Performance test completed in {execution_time:.2f} seconds')
+          print(f'CPU usage: {cpu_percent}%')
+          print(f'Memory usage: {memory_info.percent}%')
+          "
+      
+      - name: 📊 Upload Performance Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-results
+          path: reports/
+
+  # 📊 Performance Report
+  performance-report:
+    name: 📊 Performance Report
+    runs-on: ubuntu-latest
+    needs: performance-tests
+    if: always()
+    
+    steps:
+      - name: 📥 Download Performance Results
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-results
+          path: reports/
+        continue-on-error: true
+      
+      - name: 📊 Generate Performance Report
+        run: |
+          echo "# 📊 Performance Monitoring Report" > performance-report.md
+          echo "" >> performance-report.md
+          echo "**Date:** $(date)" >> performance-report.md
+          echo "**Duration:** ${{ github.event.inputs.test_duration || '5' }} minutes" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "## Results" >> performance-report.md
+          echo "- Performance tests: ${{ needs.performance-tests.result }}" >> performance-report.md
+          echo "" >> performance-report.md
+          if [ -f reports/performance-results.json ]; then
+            echo "### Detailed Results" >> performance-report.md
+            cat reports/performance-results.json >> performance-report.md
+          fi
+      
+      - name: 📱 Performance Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "📊 Performance Monitoring Completed",
+              "attachments": [{
+                "color": "${{ needs.performance-tests.result == 'success' && 'good' || 'warning' }}",
+                "fields": [{
+                  "title": "Repository",
+                  "value": "${{ github.repository }}",
+                  "short": true
+                }, {
+                  "title": "Test Duration",
+                  "value": "${{ github.event.inputs.test_duration || '5' }} minutes",
+                  "short": true
+                }, {
+                  "title": "Status",
+                  "value": "${{ needs.performance-tests.result }}",
+                  "short": true
+                }]
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()

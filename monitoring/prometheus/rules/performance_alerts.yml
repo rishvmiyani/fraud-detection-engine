@@ -1,0 +1,111 @@
+﻿# Performance and Infrastructure Alerting Rules
+groups:
+  - name: performance_alerts
+    interval: 15s
+    rules:
+      # API Response Time
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="fraud-detection-api"}[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+          service: fraud-detection-api
+          category: performance
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ printf \"%.3f\"  }}s"
+          
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: (rate(http_requests_total{job="fraud-detection-api",status=~"5.."}[5m]) / rate(http_requests_total{job="fraud-detection-api"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: fraud-detection-api
+          category: reliability
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ printf \"%.2f\"  }}%"
+          
+      # Database Connection Pool Exhaustion
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: (postgres_connections_active / postgres_connections_max) > 0.9
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+          category: infrastructure
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ printf \"%.1f\"  }}% of database connections in use"
+          
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+          category: infrastructure
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ printf \"%.1f\"  }}%"
+          
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+          category: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ printf \"%.1f\"  }}%"
+          
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: node-exporter
+          category: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ printf \"%.1f\"  }}% disk space remaining on {{ .mountpoint }}"
+          
+      # Redis Memory Usage High
+      - alert: RedisMemoryUsageHigh
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.9
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+          category: infrastructure
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ printf \"%.1f\"  }}%"
+          
+      # Kafka Consumer Lag
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: kafka
+          category: infrastructure
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer lag is {{  }} messages"
+          
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service {{ .job }} is down"
+          description: "Service {{ .job }} on {{ .instance }} has been down for more than 30 seconds"

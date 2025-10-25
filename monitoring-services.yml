@@ -1,0 +1,93 @@
+﻿# Add this to your existing docker-compose.yml or create monitoring section
+
+version: '3.8'
+
+services:
+  # =================================================================
+  # MONITORING SERVICES
+  # =================================================================
+  
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fraud-detection-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/fraud_detection_rules.yml:/etc/prometheus/fraud_detection_rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - fraud-detection-network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Grafana (Visualization)  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fraud-detection-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - fraud-detection-network
+    restart: unless-stopped
+
+  # MLflow (ML Model Management)
+  mlflow:
+    image: python:3.12-slim
+    container_name: fraud-detection-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=./mlruns
+    volumes:
+      - mlflow_data:/mlflow
+      - ./models:/models
+    working_dir: /mlflow
+    command: >
+      bash -c "
+        pip install mlflow &&
+        mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns
+      "
+    networks:
+      - fraud-detection-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  mlflow_data:
+    driver: local
+
+networks:
+  fraud-detection-network:
+    driver: bridge

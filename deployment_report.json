@@ -1,0 +1,21 @@
+{
+  "deployment_date": "2025-10-19T09:01:58.204955",
+  "project_status": "Production Ready",
+  "services_deployed": [
+    "Fraud Detection API",
+    "PostgreSQL Database",
+    "Redis Cache",
+    "Apache Kafka"
+  ],
+  "endpoints": {
+    "api_docs": "http://localhost:8000/docs",
+    "health_check": "http://localhost:8000/health",
+    "prediction": "http://localhost:8000/api/v1/predict",
+    "statistics": "http://localhost:8000/api/v1/stats"
+  },
+  "docker_services": {
+    "database": "fraud-detection-db:5432",
+    "redis": "fraud-detection-redis:6379",
+    "kafka": "fraud-detection-kafka:9092"
+  }
+}

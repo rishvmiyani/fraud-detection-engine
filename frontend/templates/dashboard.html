@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Engine - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Fraud Detection Engine</h1>
+            </div>
+            <div class="header-controls">
+                <span class="status-indicator" id="apiStatus">
+                    <i class="fas fa-circle"></i> Connecting...
+                </span>
+                <span class="last-updated" id="lastUpdated">
+                    Last Updated: Never
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Cards -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Predictions</h3>
+                        <p class="stat-number" id="totalPredictions">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card fraud">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Fraud Detected</h3>
+                        <p class="stat-number" id="fraudDetected">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card success">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Fraud Rate</h3>
+                        <p class="stat-number" id="fraudRate">0%</p>
+                    </div>
+                </div>
+
+                <div class="stat-card info">
+                    <div class="stat-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>ML Models</h3>
+                        <p class="stat-number" id="mlModels">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transaction Testing Section -->
+            <section class="transaction-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-credit-card"></i> Test Transaction</h2>
+                    <button class="btn-refresh" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="transaction-form-container">
+                    <form id="transactionForm" class="transaction-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="transactionId">Transaction ID</label>
+                                <input type="text" id="transactionId" name="transactionId" 
+                                       placeholder="AUTO-GENERATED" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="userId">User ID</label>
+                                <input type="text" id="userId" name="userId" 
+                                       placeholder="USER_001" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="amount">Amount ($)</label>
+                                <input type="number" id="amount" name="amount" 
+                                       step="0.01" min="0.01" placeholder="100.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="paymentMethod">Payment Method</label>
+                                <select id="paymentMethod" name="paymentMethod" required>
+                                    <option value="credit_card">Credit Card</option>
+                                    <option value="debit_card">Debit Card</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="cryptocurrency">Cryptocurrency</option>
+                                    <option value="wire_transfer">Wire Transfer</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="merchantCategory">Merchant Category</label>
+                                <select id="merchantCategory" name="merchantCategory" required>
+                                    <option value="grocery">Grocery</option>
+                                    <option value="retail">Retail</option>
+                                    <option value="online">Online</option>
+                                    <option value="gas_station">Gas Station</option>
+                                    <option value="restaurant">Restaurant</option>
+                                    <option value="entertainment">Entertainment</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <select id="country" name="country" required>
+                                    <option value="US">United States</option>
+                                    <option value="UK">United Kingdom</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="IN">India</option>
+                                    <option value="DE">Germany</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-predict">
+                            <i class="fas fa-brain"></i> Predict Fraud Risk
+                        </button>
+                    </form>
+
+                    <!-- Prediction Result -->
+                    <div id="predictionResult" class="prediction-result" style="display: none;">
+                        <h3>Prediction Result</h3>
+                        <div class="result-content">
+                            <div class="risk-indicator" id="riskIndicator">
+                                <div class="risk-circle" id="riskCircle">
+                                    <span id="riskPercentage">0%</span>
+                                </div>
+                                <p class="risk-level" id="riskLevel">Low Risk</p>
+                            </div>
+                            <div class="result-details">
+                                <div class="detail-item">
+                                    <strong>Status:</strong>
+                                    <span id="transactionStatus" class="status-badge">Approved</span>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Confidence:</strong>
+                                    <span id="confidence">95%</span>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Model Used:</strong>
+                                    <span id="modelUsed">ML Model</span>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Processing Time:</strong>
+                                    <span id="processingTime">--ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar"></i> Fraud Detection Trends</h3>
+                    <canvas id="fraudChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-pie"></i> Risk Distribution</h3>
+                    <canvas id="riskChart" width="400" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- Recent Transactions -->
+            <section class="recent-transactions">
+                <h3><i class="fas fa-history"></i> Recent Transactions</h3>
+                <div class="transactions-table">
+                    <table id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Amount</th>
+                                <th>Risk Level</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsBody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

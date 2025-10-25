@@ -1,0 +1,421 @@
+﻿# Comprehensive monitoring configuration for fraud detection system
+# Covers metrics, logging, alerting, and observability
+
+# Prometheus metrics configuration
+prometheus:
+  # Server settings
+  enabled: true
+  host: UTF8{PROMETHEUS_HOST:localhost}
+  port: UTF8{PROMETHEUS_PORT:9090}
+  metrics_path: /metrics
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  
+  # Scrape configurations
+  scrape_configs:
+    - job_name: fraud-api
+      static_configs:
+        - targets: 
+          - localhost:8000
+      metrics_path: /api/v2/monitoring/metrics
+      scrape_interval: 10s
+      
+    - job_name: kafka-exporter
+      static_configs:
+        - targets:
+          - localhost:9308
+      scrape_interval: 30s
+      
+    - job_name: postgres-exporter
+      static_configs:
+        - targets:
+          - localhost:9187
+      scrape_interval: 30s
+      
+    - job_name: redis-exporter
+      static_configs:
+        - targets:
+          - localhost:9121
+      scrape_interval: 30s
+
+# Grafana dashboard configuration
+grafana:
+  enabled: true
+  host: UTF8{GRAFANA_HOST:localhost}
+  port: UTF8{GRAFANA_PORT:3000}
+  admin_user: UTF8{GRAFANA_USER:admin}
+  admin_password: UTF8{GRAFANA_PASSWORD:admin123}
+  
+  # Dashboard provisioning
+  dashboards:
+    - name: fraud-detection-overview
+      path: /dashboards/fraud-overview.json
+      folder: Fraud Detection
+      
+    - name: model-performance
+      path: /dashboards/model-performance.json
+      folder: ML Models
+      
+    - name: system-health
+      path: /dashboards/system-health.json
+      folder: Infrastructure
+      
+    - name: real-time-alerts
+      path: /dashboards/real-time-alerts.json
+      folder: Alerts
+
+# Application metrics
+application_metrics:
+  # API metrics
+  api_metrics:
+    enabled: true
+    metrics:
+      - name: http_requests_total
+        type: counter
+        description: "Total HTTP requests"
+        labels: [method, endpoint, status_code]
+        
+      - name: http_request_duration_seconds
+        type: histogram
+        description: "HTTP request duration"
+        buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]
+        labels: [method, endpoint]
+        
+      - name: active_connections
+        type: gauge
+        description: "Active connections"
+        
+  # Fraud detection metrics
+  fraud_metrics:
+    enabled: true
+    metrics:
+      - name: fraud_detections_total
+        type: counter
+        description: "Total fraud detections"
+        labels: [model_version, risk_level]
+        
+      - name: model_inference_duration_seconds
+        type: histogram
+        description: "Model inference time"
+        buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25]
+        labels: [model_name, model_version]
+        
+      - name: fraud_score_distribution
+        type: histogram
+        description: "Distribution of fraud scores"
+        buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        
+      - name: false_positive_rate
+        type: gauge
+        description: "False positive rate"
+        labels: [model_version, time_window]
+        
+  # Business metrics
+  business_metrics:
+    enabled: true
+    metrics:
+      - name: transactions_processed_total
+        type: counter
+        description: "Total transactions processed"
+        labels: [channel, payment_method]
+        
+      - name: fraud_prevented_amount
+        type: counter
+        description: "Amount of fraud prevented (currency units)"
+        labels: [currency, risk_level]
+        
+      - name: processing_cost_total
+        type: counter
+        description: "Total processing cost"
+        labels: [cost_type]
+
+# Logging configuration
+logging:
+  # Central logging
+  central_logging:
+    enabled: true
+    backend: elasticsearch
+    
+  # Elasticsearch configuration
+  elasticsearch:
+    enabled: true
+    hosts:
+      - UTF8{ELASTICSEARCH_HOST:localhost}:UTF8{ELASTICSEARCH_PORT:9200}
+    username: UTF8{ELASTICSEARCH_USER:elastic}
+    password: UTF8{ELASTICSEARCH_PASSWORD:changeme}
+    
+    # Index configuration
+    indices:
+      application_logs:
+        name: fraud-detection-app-logs
+        pattern: fraud-detection-app-logs-*
+        template: app-logs-template
+        
+      audit_logs:
+        name: fraud-detection-audit-logs
+        pattern: fraud-detection-audit-logs-*
+        template: audit-logs-template
+        
+      access_logs:
+        name: fraud-detection-access-logs
+        pattern: fraud-detection-access-logs-*
+        template: access-logs-template
+        
+  # Kibana configuration
+  kibana:
+    enabled: true
+    host: UTF8{KIBANA_HOST:localhost}
+    port: UTF8{KIBANA_PORT:5601}
+    
+    # Dashboard configuration
+    dashboards:
+      - name: application-logs
+        pattern: fraud-detection-app-logs-*
+        
+      - name: audit-dashboard
+        pattern: fraud-detection-audit-logs-*
+        
+  # Log levels and filtering
+  log_levels:
+    root: INFO
+    fraud_detection: DEBUG
+    database: WARNING
+    kafka: INFO
+    
+  # Structured logging fields
+  structured_fields:
+    - timestamp
+    - level
+    - logger_name
+    - request_id
+    - user_id
+    - transaction_id
+    - processing_time_ms
+    - fraud_score
+    - model_version
+    - error_code
+    - stack_trace
+
+# Alerting configuration
+alerting:
+  # Alert manager
+  alertmanager:
+    enabled: true
+    host: UTF8{ALERTMANAGER_HOST:localhost}
+    port: UTF8{ALERTMANAGER_PORT:9093}
+    
+    # Notification channels
+    notifications:
+      slack:
+        enabled: true
+        webhook_url: UTF8{SLACK_WEBHOOK_URL}
+        channel: "#fraud-alerts"
+        username: "Fraud Detection Bot"
+        
+      email:
+        enabled: true
+        smtp_server: UTF8{SMTP_SERVER:smtp.gmail.com}
+        smtp_port: UTF8{SMTP_PORT:587}
+        username: UTF8{SMTP_USERNAME}
+        password: UTF8{SMTP_PASSWORD}
+        recipients:
+          - fraud-team@company.com
+          - ops-team@company.com
+          
+      pagerduty:
+        enabled: false
+        service_key: UTF8{PAGERDUTY_SERVICE_KEY}
+        
+  # Alert rules
+  alert_rules:
+    # System health alerts
+    - name: api_high_error_rate
+      condition: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+      for: 2m
+      severity: critical
+      description: "API error rate is above 10%"
+      
+    - name: api_high_latency
+      condition: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+      for: 5m
+      severity: warning
+      description: "API 95th percentile latency is above 1 second"
+      
+    # Fraud detection alerts
+    - name: model_performance_degraded
+      condition: false_positive_rate > 0.05
+      for: 10m
+      severity: critical
+      description: "Model false positive rate exceeded 5%"
+      
+    - name: high_fraud_volume
+      condition: rate(fraud_detections_total[5m]) > 100
+      for: 2m
+      severity: warning
+      description: "High volume of fraud detections"
+      
+    # Infrastructure alerts
+    - name: database_connection_failed
+      condition: up{job="postgres-exporter"} == 0
+      for: 1m
+      severity: critical
+      description: "Database connection failed"
+      
+    - name: kafka_consumer_lag_high
+      condition: kafka_consumer_lag_sum > 1000
+      for: 5m
+      severity: warning
+      description: "Kafka consumer lag is high"
+
+# Model monitoring
+model_monitoring:
+  enabled: true
+  
+  # Data drift detection
+  data_drift:
+    enabled: true
+    detection_methods:
+      - kolmogorov_smirnov
+      - population_stability_index
+      - jensen_shannon_divergence
+    threshold: 0.1
+    window_size_hours: 24
+    check_interval_hours: 1
+    
+  # Model performance monitoring
+  performance_monitoring:
+    enabled: true
+    metrics:
+      - accuracy
+      - precision
+      - recall
+      - f1_score
+      - auc_roc
+    
+    thresholds:
+      accuracy_min: 0.85
+      precision_min: 0.80
+      recall_min: 0.75
+      f1_score_min: 0.77
+      auc_roc_min: 0.85
+      
+    evaluation_window_hours: 24
+    check_interval_hours: 4
+    
+  # Feature monitoring
+  feature_monitoring:
+    enabled: true
+    track_nulls: true
+    track_distributions: true
+    track_correlations: true
+    
+    alert_conditions:
+      null_rate_threshold: 0.1
+      distribution_shift_threshold: 0.15
+      correlation_change_threshold: 0.2
+
+# System health monitoring
+health_monitoring:
+  # Resource monitoring
+  resources:
+    cpu_threshold: 80
+    memory_threshold: 85
+    disk_threshold: 90
+    
+  # Service monitoring
+  services:
+    - name: fraud-api
+      endpoint: http://localhost:8000/health
+      timeout_seconds: 5
+      interval_seconds: 30
+      
+    - name: database
+      type: postgresql
+      connection_string: UTF8{DATABASE_URL}
+      timeout_seconds: 10
+      interval_seconds: 60
+      
+    - name: redis
+      type: redis
+      connection_string: UTF8{REDIS_URL}
+      timeout_seconds: 5
+      interval_seconds: 30
+      
+    - name: kafka
+      type: kafka
+      brokers: UTF8{KAFKA_BROKERS}
+      timeout_seconds: 10
+      interval_seconds: 60
+      
+  # Dependency monitoring
+  dependencies:
+    external_apis:
+      - name: payment_processor_api
+        endpoint: UTF8{PAYMENT_PROCESSOR_HEALTH_URL}
+        timeout_seconds: 10
+        interval_seconds: 300
+        
+      - name: geolocation_api
+        endpoint: UTF8{GEOLOCATION_API_HEALTH_URL}
+        timeout_seconds: 5
+        interval_seconds: 600
+
+# Audit and compliance monitoring
+audit:
+  enabled: true
+  
+  # Audit events
+  events:
+    - user_login
+    - user_logout
+    - api_key_usage
+    - model_prediction
+    - admin_action
+    - configuration_change
+    - data_access
+    - fraud_decision_override
+    
+  # Compliance monitoring
+  compliance:
+    data_retention_days: 2555  # 7 years
+    pii_access_logging: true
+    gdpr_compliance: true
+    
+    # Regulatory reporting
+    reporting:
+      enabled: true
+      report_types:
+        - daily_fraud_summary
+        - weekly_model_performance
+        - monthly_compliance_report
+      
+      storage_location: UTF8{COMPLIANCE_STORAGE_PATH}
+      encryption_enabled: true
+
+# Performance monitoring
+performance:
+  # Application performance monitoring
+  apm:
+    enabled: true
+    provider: jaeger  # jaeger, zipkin, datadog
+    
+  # Jaeger configuration
+  jaeger:
+    agent_host: UTF8{JAEGER_AGENT_HOST:localhost}
+    agent_port: UTF8{JAEGER_AGENT_PORT:6831}
+    service_name: fraud-detection-engine
+    
+  # Distributed tracing
+  tracing:
+    enabled: true
+    sampling_rate: 0.1
+    max_tag_value_length: 256
+    
+    # Traced operations
+    trace_operations:
+      - api_requests
+      - database_queries
+      - model_inference
+      - kafka_produce
+      - kafka_consume
+      - external_api_calls

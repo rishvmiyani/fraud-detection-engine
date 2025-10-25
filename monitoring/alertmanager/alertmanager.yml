@@ -1,0 +1,115 @@
+﻿# AlertManager Configuration for Fraud Detection
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@company.com'
+  smtp_auth_username: 'alerts@company.com'
+  smtp_auth_password: 'your-smtp-password'
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# Templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Routing
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 5s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'fraud-detection-alerts'
+  routes:
+    # Critical alerts go to PagerDuty and Slack
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      group_interval: 5s
+      repeat_interval: 5m
+      
+    # Business alerts go to business team
+    - match:
+        category: business
+      receiver: 'business-alerts'
+      
+    # Model alerts go to ML team
+    - match:
+        category: model
+      receiver: 'ml-team-alerts'
+      
+    # Infrastructure alerts go to DevOps team
+    - match:
+        category: infrastructure
+      receiver: 'devops-alerts'
+
+# Inhibition rules
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Receivers
+receivers:
+  - name: 'fraud-detection-alerts'
+    email_configs:
+      - to: 'fraud-team@company.com'
+        subject: 'Fraud Detection Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+          {{ end }}
+    slack_configs:
+      - channel: '#fraud-detection-alerts'
+        title: 'Fraud Detection Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@company.com'
+        subject: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          CRITICAL ALERT TRIGGERED
+          {{ range .Alerts }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.service }}
+          {{ end }}
+    slack_configs:
+      - channel: '#critical-alerts'
+        title: 'CRITICAL FRAUD DETECTION ALERT'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        color: 'danger'
+    pagerduty_configs:
+      - service_key: 'your-pagerduty-service-key'
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
+  - name: 'business-alerts'
+    email_configs:
+      - to: 'business-team@company.com'
+        subject: 'Business Alert: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '#business-alerts'
+        title: 'Business Metrics Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
+  - name: 'ml-team-alerts'
+    email_configs:
+      - to: 'ml-team@company.com'
+        subject: 'ML Model Alert: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '#ml-alerts'
+        title: 'ML Model Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
+  - name: 'devops-alerts'
+    email_configs:
+      - to: 'devops@company.com'
+        subject: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '#devops-alerts'
+        title: 'Infrastructure Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
