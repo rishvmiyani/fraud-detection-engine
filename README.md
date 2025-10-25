@@ -880,9 +880,9 @@ text
 
 ### Getting Help
 
-- 📧 **Email:** your.email@example.com
+- 📧 **Email:** rishv.miyani29@gmail.com
 - 💬 **Discord:** [Join our community](#)
-- 🐛 **Issues:** [GitHub Issues](https://github.com/yourusername/fraud-detection-engine/issues)
+- 🐛 **Issues:** [GitHub Issues](https://github.com/rishvmiyani/fraud-detection-engine/issues)
 - 📚 **Documentation:** [Full Docs](#)
 
 ### FAQ
